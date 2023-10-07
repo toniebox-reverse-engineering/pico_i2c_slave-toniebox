@@ -71,16 +71,19 @@ enum MMA8452Q_Register
 
 typedef enum
 {
-    MSG_NONE = 0,
-    MSG_READ = 1,
-    MSG_WRITE = 2,
+    MSG_NONE,
+    MSG_START,
+    MSG_READ,
+    MSG_WRITE,
+    MSG_STOP,
+    MSG_TIMEOUT
 } ctx_msg_type;
 
 typedef struct
 {
     ctx_msg_type type;
-    uint8_t reg;
-    uint8_t val;
+    uint8_t val1;
+    uint8_t val2;
 } ctx_msg;
 
 static struct
@@ -97,11 +100,15 @@ static struct
 #define f_read ((ctx.mem[CTRL_REG1] & 0x02) == 0x02)
 #define fmode  ((ctx.mem[F_SETUP] & 0xC0) == 0xC0)
 
-static void push_msg(ctx_msg_type type, uint8_t reg, uint8_t val) {
+static uint32_t millis() {
+    return (time_us_64()/1000);
+}
+
+static void push_msg(ctx_msg_type type, uint8_t val1, uint8_t val2) {
     if ((ctx.msg_write + 1) % MSG_COUNT != ctx.msg_read) {
         ctx.msg_buffer[ctx.msg_write].type = type;
-        ctx.msg_buffer[ctx.msg_write].reg = reg;
-        ctx.msg_buffer[ctx.msg_write].val = val;
+        ctx.msg_buffer[ctx.msg_write].val1 = val1;
+        ctx.msg_buffer[ctx.msg_write].val2 = val2;
         ctx.msg_write = (ctx.msg_write + 1) % MSG_COUNT;
     } else {
         // Buffer is full, handle error or discard the message
@@ -229,6 +236,7 @@ static void i2c_receive(i2c_inst_t *i2c) {
         uint8_t addr = i2c_read_byte(i2c);
         ctx.mem_f_bit = ((addr & 0x80) == 0x80);
         ctx.mem_address = addr; // & 0x7F;
+        push_msg(MSG_START, ctx.mem_address, 0x0);
 
         ctx.mem_address_written = true;
     } else {
@@ -255,6 +263,13 @@ static void i2c_request(i2c_inst_t *i2c) {
 
     ctx.mem_address = auto_increment(ctx.mem_address);
 }
+static void i2c_stop() {
+    if (ctx.mem_address_written) {
+        push_msg(MSG_STOP, 0x0, 0x0);
+        ctx.mem_address_written = false;
+        ctx.mem_f_bit = false;
+    }
+}
 
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
@@ -267,7 +282,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         i2c_request(i2c);
         break;
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
-        ctx.mem_address_written = false;
+        i2c_stop();
         break;
     default:
         break;
@@ -307,77 +322,50 @@ static void setup_slave() {
     i2c_slave_init(i2c0, I2C_SLAVE_ADDRESS, &i2c_slave_handler);
 }
 
-bool lastTap = false;
-bool lastOrient = false;
+uint32_t last_fifo;
+#define FIFO_TIMEOUT 50
+
+void send_tap(uint8_t* fifo, size_t len, uint8_t status, uint8_t pulse, bool wait, bool irq) {
+    ctx.mem[STATUS_MMA8452Q] = status;
+    memcpy(&ctx.mem[FIFO_BUF], fifo, len);
+    ctx.mem[PULSE_SRC] = pulse;
+
+    if (irq)
+        set_irq();
+
+    if (wait) {
+        last_fifo = millis();
+        while (ctx.mem[STATUS_MMA8452Q] != 0 || ctx.mem[PULSE_SRC] != 0 || ctx.mem_f_bit) {
+            sleep_ms(1); //Wait for read
+            if (last_fifo + FIFO_TIMEOUT < millis()) {
+                push_msg(MSG_TIMEOUT, 0x0, 0x0);
+                break;
+            }
+        }
+    }
+}
+
+void send_tap_right() {
+    uint8_t fifo[] = { 0xef, 0x0, 0x0, 0xef, 0x1, 0x1, 0xf0, 0x2, 0x1, 0xef, 0x2, 0x1, 0xef, 0x2, 0x1, 0xf1, 0x1, 0x1, 0xef, 0x2, 0x1, 0xef, 0x2, 0x1, 0xef, 0x2, 0x1, 0xef, 0x2, 0x1, 0xef, 0x1, 0x1, 0xef, 0x1, 0x1, 0xef, 0x1, 0x1, 0xef, 0xc3, 0xd8, 0x19, 0x80, 0x82, 0x21, 0x80, 0xb5, 0xde, 0xca, 0x14, 0xc9, 0x4, 0xfd, 0xe0, 0x1c, 0x1a, 0xd1, 0x1, 0x1c, 0xe3, 0x17, 0xd, 0xf2, 0x16, 0x1, 0xf6, 0x19, 0xf3, 0xf9, 0x1f, 0xf5, 0xef, 0x1f, 0x0, 0xea, 0x23, 0xd, 0xeb, 0x25, 0x12, 0xed, 0x22, 0x11, 0xed, 0x19, 0xf, 0xed, 0xe, 0xa, 0xf0, 0x9, 0x8, 0xf2, 0x9, 0xb };
+    send_tap(fifo, sizeof(fifo), 0xe0, 0xc4, true, true);
+}
+
+void send_tap_left() {
+    uint8_t fifo[] = { 0xef, 0x1, 0xff, 0xf0, 0xfd, 0xfe, 0xef, 0xfc, 0xfe, 0xef, 0xfc, 0xff, 0xf0, 0xfc, 0xff, 0xef, 0xfc, 0xff, 0xef, 0xfc, 0xff, 0xef, 0xfc, 0x0, 0xef, 0xfc, 0x0, 0xf0, 0xfc, 0x0, 0xef, 0xfc, 0x0, 0xef, 0xfc, 0x0, 0xef, 0xfb, 0x0, 0xef, 0xfb, 0x0, 0xf0, 0x3e, 0x40, 0xf1, 0x77, 0x2a, 0xd, 0x6a, 0x68, 0xf5, 0x2a, 0x3b, 0xc, 0xf5, 0xeb, 0xe4, 0xf7, 0xe8, 0xd3, 0x1, 0xa, 0xe9, 0x19, 0xf1, 0xf2, 0x29, 0xee, 0xef, 0x1d, 0xee, 0xf3, 0x14, 0xf6, 0xfb, 0x8, 0xfa, 0xf7, 0xfe, 0xf9, 0xf6, 0xf9, 0xfc, 0xe0, 0xfb, 0x4, 0xe4, 0xfb, 0xa, 0xf2, 0x1, 0xb, 0x1a, 0x1, 0xff };
+    send_tap(fifo, sizeof(fifo), 0xe0, 0xc0, true, true);
+}
+
 void loop() {
     if (get_bootsel_button()) {
         reset_irq();
-
         sleep_ms(500);
         if (get_bootsel_button()) { //Long
-            puts("Press long");
-            //TODO
-            if (lastOrient) {
-                ctx.mem[PL_STATUS] = 0b10000111; //Ears Up
-                ctx.mem[PL_STATUS] = 0b10000110; //Ears Up
-            } else {
-                ctx.mem[PL_STATUS] = 0b10000101; //Ears Down
-                ctx.mem[PL_STATUS] = 0b10000100; //Ears Down
-            }
-            //ctx.mem[STATUS_MMA8452Q] = 0b01000000;
-            lastOrient = !lastOrient;
-
+            puts("Press long - tap right\r\n");
+            send_tap_right();
         } else { //Short
-            //TODO
-            puts("Press short");
-            uint8_t fifo1[] = { 0xee, 0x0, 0x0, 0xef, 0xff, 0xff, 0xef, 0x0, 0xff, 0xef, 0x0, 0xfe, 0xef, 0x0, 0xff, 0xef, 0x0, 0xff, 0xef, 0x1, 0xff, 0xef, 0x1, 0xff, 0xf0, 0x1, 0xff, 0xf0, 0x1, 0x0, 0xf0, 0x1, 0xff, 0xef, 0x2, 0xff, 0xeb, 0x3, 0x0, 0xf2, 0x3, 0x0, 0xf4, 0x5e, 0x59, 0xfa, 0x7f, 0x12, 0x1, 0x5a, 0x10, 0xdd, 0x33, 0xf6, 0xd8, 0xfd, 0x12, 0xf0, 0xee, 0xf6, 0xeb, 0xe9, 0xfc, 0xec, 0xff, 0xeb, 0xf7, 0xef, 0xfc, 0xff, 0xe7, 0x0, 0xf8, 0xf8, 0xfc, 0xe9, 0xf0, 0x8, 0xe9, 0xeb, 0x7, 0xec, 0xee, 0x0, 0xeb, 0xed, 0xfe, 0xea, 0xf0, 0xfd, 0xee, 0xf2, 0xfd, 0xf0, 0xf4, 0xfd };
-            uint8_t fifo2[] = { 0xf0, 0x0, 0x0, 0xf0, 0x1, 0xff, 0xef, 0x1, 0xff, 0xf0, 0x0, 0xff, 0xef, 0x0, 0xff, 0xef, 0x0, 0xff, 0xef, 0x0, 0xff, 0xf0, 0x0, 0xff, 0xf0, 0x0, 0xff, 0xf0, 0x0, 0xff, 0xef, 0x0, 0xff, 0xf1, 0xda, 0xda, 0xf4, 0xdb, 0xbe, 0xe4, 0xd6, 0x9b, 0x6, 0xd4, 0x92, 0xf9, 0x9, 0x5, 0xec, 0xe8, 0x5, 0xe2, 0x5, 0xfd, 0xe3, 0x46, 0x33, 0xe8, 0xf, 0x2f, 0xf2, 0xf5, 0x1d, 0xf3, 0xfd, 0xf, 0xf9, 0xfb, 0x19, 0xf7, 0xf3, 0x14, 0xf7, 0xf7, 0xd, 0xf5, 0xf6, 0x11, 0xef, 0xf8, 0xd, 0xe9, 0xfc, 0xb, 0xe7, 0x1, 0x8, 0xea, 0x2, 0x5, 0xeb, 0x5, 0x3, 0xec, 0x7, 0xff };
-
-            if (lastTap) { // Left
-                ctx.mem[STATUS_MMA8452Q] = 0x05;
-                memcpy(&ctx.mem[FIFO_BUF], fifo2, sizeof(fifo2));
-                ctx.mem[PULSE_SRC] = 0x00;
-            
-                set_irq();
-                while (ctx.mem[STATUS_MMA8452Q] != 0 || ctx.mem[PULSE_SRC] != 0)
-                {
-                    sleep_ms(1); //Wait for read
-                }
-                
-                ctx.mem[STATUS_MMA8452Q] = 0xe0;
-                memcpy(&ctx.mem[FIFO_BUF], fifo1, sizeof(fifo1));
-                ctx.mem[PULSE_SRC] = 0xc0;
-            
-                set_irq();
-                while (ctx.mem[STATUS_MMA8452Q] != 0 || ctx.mem[PULSE_SRC] != 0)
-                {
-                    sleep_ms(1); //Wait for read
-                }
-            } else { // Right
-                ctx.mem[STATUS_MMA8452Q] = 0xe0;
-                memcpy(&ctx.mem[FIFO_BUF], fifo1, sizeof(fifo1));
-                ctx.mem[PULSE_SRC] = 0xc0;
-            
-                set_irq();
-                while (ctx.mem[STATUS_MMA8452Q] != 0 || ctx.mem[PULSE_SRC] != 0)
-                {
-                    sleep_ms(1); //Wait for read
-                }
-
-                ctx.mem[STATUS_MMA8452Q] = 0xe0;
-                memcpy(&ctx.mem[FIFO_BUF], fifo2, sizeof(fifo2));
-                ctx.mem[PULSE_SRC] = 0xc4;
-            
-                set_irq();
-                while (ctx.mem[STATUS_MMA8452Q] != 0 || ctx.mem[PULSE_SRC] != 0)
-                {
-                    sleep_ms(1); //Wait for read
-                }
-            }
-            lastTap = !lastTap;
+            puts("Press short - tap left\r\n");
+            send_tap_left();
         }
-        //ctx.mem[STATUS_MMA8452Q] = 0x20;
-
 
         while (get_bootsel_button()) {}
     }
@@ -386,15 +374,17 @@ void loop() {
         ctx_msg msg = pull_msg();
 
         if (msg.type == MSG_WRITE) {
-            printf("write register %02x=%02x\r\n", msg.reg, msg.val);
-            led_switch();
+            printf("write register: %02x=%02x\r\n", msg.val1, msg.val2);
         } else if (msg.type == MSG_READ) {
-            printf("read register %02x=%02x\r\n", msg.reg, msg.val);
-            led_switch();
+            printf("read register: %02x=%02x\r\n", msg.val1, msg.val2);
+        } else if (msg.type == MSG_STOP) {
+            //printf("\r\nSTOP"); //Too often
+        } else if (msg.type == MSG_TIMEOUT) {
+            //printf("\r\nFifo timeout"); //always?!
         } else if (msg.type == MSG_NONE) {
-            printf("Empty msg %02x=%02x\r\n", msg.reg, msg.val);
-            led_switch();
+            printf("Empty msg\r\n");
         }
+        led_switch();
     }
 }
 
@@ -402,7 +392,7 @@ int main() {
     stdio_init_all();
 
     setup_slave();
-    puts("\nMMA8452Q Emulator\n");
+    printf("\r\nMMA8452Q Emulator\r\n");
 
     while (true) {
         loop();
