@@ -9,6 +9,11 @@
 #include "hardware/structs/ioqspi.h"
 #include "hardware/structs/sio.h"
 
+/*
+#include "pico/sleep.h"
+#include "hardware/rtc.h"
+*/
+
 static const uint I2C_SLAVE_ADDRESS = 0x1D;
 
 static const uint HEADSDOWN_PIN = 2;
@@ -24,6 +29,7 @@ static const uint TAP_N_TILT_BWD_PIN = 11;
 static const uint EAR_LEFT_PIN = 12;
 static const uint EAR_RIGHT_PIN = 13;
 static const uint LED_PIN = 25;
+static const uint SLEEP_PIN = 14;
 
 #define REGISTER_COUNT 0xff
 #define MSG_COUNT      0xff
@@ -358,6 +364,10 @@ static void setup_slave() {
     gpio_set_dir(HEADSDOWN_PIN, GPIO_IN);
     gpio_pull_up(HEADSDOWN_PIN);
     
+    gpio_init(SLEEP_PIN);
+    gpio_set_dir(SLEEP_PIN, GPIO_IN);
+    gpio_pull_down(SLEEP_PIN);
+    
 
     // configure I2C0 for slave mode
     i2c_slave_init(i2c0, I2C_SLAVE_ADDRESS, &i2c_slave_handler);
@@ -462,6 +472,8 @@ void onButtonShortLong(uint8_t pin, ActionFunction shortAction, ActionFunction l
 }
 
 
+uint32_t lastMessageTime;
+#define SLEEP_TIMEOUT 1000 * 5
 void loop() {
     if (get_bootsel_button()) {
         reset_irq();
@@ -499,7 +511,39 @@ void loop() {
             printf("Empty msg\r\n");
         }
         led_switch();
+
+        lastMessageTime = millis();
     }
+    if (gpio_get(SLEEP_PIN)) {
+        lastMessageTime = millis();
+    }
+
+    /*
+    if (lastMessageTime + SLEEP_TIMEOUT < millis()) {
+        uart_default_tx_wait_blocking();
+        uint _scb_orig;
+        uint _en0_orig;
+        uint _en1_orig;
+
+        _scb_orig = scb_hw->scr;
+        _en0_orig = clocks_hw->sleep_en0;
+        _en1_orig = clocks_hw->sleep_en1;
+
+        sleep_run_from_xosc(); //needed?
+        sleep_goto_dormant_until_pin(SLEEP_PIN, true, true);
+
+        clocks_init();
+        // Re-enable Ring Oscillator control
+        rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
+
+        // restore clock registers
+        scb_hw->scr             = _scb_orig;
+        clocks_hw->sleep_en0    = _en0_orig;
+        clocks_hw->sleep_en1    = _en1_orig;
+
+        main();
+    }
+    */
 }
 
 int main() {
@@ -508,6 +552,7 @@ int main() {
 
     printf("\r\nMMA8452Q Emulator\r\n");
 
+    lastMessageTime = millis();
     while (true) {
         loop();
     }
