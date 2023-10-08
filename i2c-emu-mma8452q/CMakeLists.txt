@@ -1,6 +1,6 @@
 add_executable(i2c-emu-mma8452q i2c-emu-mma8452q.c)
 
-pico_enable_stdio_uart(i2c-emu-mma8452q 0)
+pico_enable_stdio_uart(i2c-emu-mma8452q 1)
 pico_enable_stdio_usb(i2c-emu-mma8452q 1)
 
 
