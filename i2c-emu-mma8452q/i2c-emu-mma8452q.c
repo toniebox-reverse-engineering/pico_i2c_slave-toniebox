@@ -367,7 +367,7 @@ static void setup_slave() {
     gpio_init(SLEEP_PIN);
     gpio_set_dir(SLEEP_PIN, GPIO_IN);
     gpio_pull_down(SLEEP_PIN);
-    
+
 
     // configure I2C0 for slave mode
     i2c_slave_init(i2c0, I2C_SLAVE_ADDRESS, &i2c_slave_handler);
@@ -457,23 +457,30 @@ void onButton(uint8_t pin, ActionFunction action) {
         send_headsup();
     }
 }
-void onButtonShortLong(uint8_t pin, ActionFunction shortAction, ActionFunction longAction) {
-    if (!gpio_get(pin)) {
+void onButtonShortLong(uint8_t pin, uint8_t not_pin, ActionFunction shortAction, ActionFunction longAction) {
+    if (!gpio_get(pin) && gpio_get(not_pin)) {
         sleep_ms(500);
-        if (!gpio_get(pin)) { // Long
-            longAction();
-            while (!gpio_get(pin)) {}
-            send_headsup();
-        } else { // Short
-            shortAction();
-            while (!gpio_get(pin)) {}
+        if (gpio_get(not_pin)) {
+            if (!gpio_get(pin)) { // Long
+                longAction();
+                while (!gpio_get(pin)) {}
+                send_headsup();
+            } else { // Short
+                shortAction();
+                while (!gpio_get(pin)) {}
+            }
         }
     }
 }
-
+void onButtonDoubleHold(uint8_t pinA, uint8_t pinB, ActionFunction action) {
+    if (!gpio_get(pinA) && !gpio_get(pinB)) {
+        action();
+        while(!gpio_get(pinA) && !gpio_get(pinB)) {}
+    }
+}
 
 uint32_t lastMessageTime;
-#define SLEEP_TIMEOUT 1000 * 5
+#define SLEEP_TIMEOUT 1000 * 10
 void loop() {
     if (get_bootsel_button()) {
         reset_irq();
@@ -487,8 +494,9 @@ void loop() {
         while (get_bootsel_button()) {}
     }
 
-    onButtonShortLong(TAP_N_TILT_FWD_PIN, send_tap_right, send_tilt_left);
-    onButtonShortLong(TAP_N_TILT_BWD_PIN, send_tap_left, send_tilt_right);
+    onButtonShortLong(TAP_N_TILT_FWD_PIN, TAP_N_TILT_BWD_PIN, send_tap_right, send_tilt_left);
+    onButtonShortLong(TAP_N_TILT_BWD_PIN, TAP_N_TILT_FWD_PIN, send_tap_left, send_tilt_right);
+    onButtonDoubleHold(TAP_N_TILT_FWD_PIN, TAP_N_TILT_FWD_PIN, send_headsdown);
 
     onButton(TAP_LEFT_PIN, send_tap_left);
     onButton(TAP_RIGHT_PIN, send_tap_right);
