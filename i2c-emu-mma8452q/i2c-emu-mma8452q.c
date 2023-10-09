@@ -517,6 +517,15 @@ void loop() {
     if (gpio_get(SLEEP_PIN)) {
         lastMessageTime = millis();
     }
+    
+    if (lastMessageTime + SLEEP_TIMEOUT < millis()) {
+        printf("Nothing happened for %is\r\n", SLEEP_TIMEOUT/1000);
+        for(uint8_t i=0; i<10; i++) {
+            led_switch();
+            sleep_ms(50);
+        }
+        lastMessageTime = millis();
+    }
 
     /*
     if (lastMessageTime + SLEEP_TIMEOUT < millis()) {
