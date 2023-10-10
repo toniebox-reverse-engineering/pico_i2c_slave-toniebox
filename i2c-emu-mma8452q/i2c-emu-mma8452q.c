@@ -535,12 +535,13 @@ void loop() {
         reset_irq();
         sleep_ms(500);
         if (get_bootsel_button()) { //Long
-            send_tap_right();
+            send_headsdown();
+            while (get_bootsel_button()) {}
+            send_headsup();
         } else { //Short
             send_tap_left();
+            while (get_bootsel_button()) {}
         }
-
-        while (get_bootsel_button()) {}
     }
 
     onButtonShortLong(TAP_N_TILT_FWD_PIN, TAP_N_TILT_BWD_PIN, send_tap_right, send_tilt_left);
