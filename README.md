@@ -60,5 +60,5 @@ Then:
 
 ## Authors
 
-Valentin Milea <valentin.milea@gmail.com> (I2C_Slave lib)
-0xbadbee aka. SciLor (MMA8452Q emulator)
+- Valentin Milea <valentin.milea@gmail.com> (I2C_Slave lib)
+- 0xbadbee aka. SciLor (MMA8452Q emulator)
