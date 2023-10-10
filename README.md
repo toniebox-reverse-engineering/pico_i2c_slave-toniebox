@@ -32,6 +32,7 @@ Hint: If you need to reconnect it any time you want to remove this mod, you'll j
 | GP09 | Tilt right |
 | GP11 | Short tap right, hold tilt left |
 | GP11 | Short tap left, hold tilt right |
+| GP11+12 | Hold both, box is headsdown |
 | BOOTSEL | Short tap left, hold box is headsdown |
 
 
