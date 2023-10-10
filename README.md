@@ -1,16 +1,19 @@
 # I2C MMA8452Q emulator for the Toniebox
 This implementents a rudimentary emulation for the acceleration sensor of the Toniebox to replace it with buttons. It is tested with the CC3200 Variant. The CC3235 may work. The ESP32 based box has a different acceleration sensor and is not supported!
 
+## ATTENTION - THIS WILL VOID YOU WARRANTY
+I did this mod without deep electrical knowledge. The voltage regulator should be able to handle the extra as the DAC is also connected to it. If there is anything bad, please let me know. If this breaks your box, don't blame me or Tonies!
+
 ## Known side effects
-As I cannot cut the power of the pico, it need around 1mA when the box is off. 
+As I cannot cut the power of the pico, it need around 1mA when the box is off. When the box is running 30-50mAs extra.
 
 ## Cut the VDD of the MMA8452Q
 Please cut the VDD of the MMA8452Q (blue) marked with the red line.
-Just use a sharp knife and do the cut as the line suggest. Afterwards check if the vias above the line and the capacitor arn't connected anymore. 
+Just use a sharp knife and do the cut as the line suggest. Afterwards check if the vias above the line and the capacitor below are not connected anymore. 
 
 ![VDD Cut](mma8452q-vdd-cut.jpg)
 
-Hint: If you need to remove this mod, you'll just need resolder this connection and the MMA8452Q works again.
+Hint: If you want to remove this mod, you'll just need resolder this connection and the MMA8452Q works again.
 
 ## Pinout
 ### Required
