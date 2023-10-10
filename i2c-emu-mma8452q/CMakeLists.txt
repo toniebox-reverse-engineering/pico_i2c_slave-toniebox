@@ -8,4 +8,4 @@ pico_add_extra_outputs(i2c-emu-mma8452q)
 
 target_compile_options(i2c-emu-mma8452q PRIVATE -Wall)
 
-target_link_libraries(i2c-emu-mma8452q i2c_slave pico_stdlib)
+target_link_libraries(i2c-emu-mma8452q i2c_slave pico_stdlib hardware_rtc hardware_sleep)
