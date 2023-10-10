@@ -47,8 +47,8 @@ Hint: If you want to remove this mod, you'll just need resolder this connection 
 Follow the instructions in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) to setup your build environment. You'll also need pico-extras!
 Then:
 
-- `git clone https://github.com/vmilea/pico_i2c_slave`
-- `cd pico_i2c_slave`
+- `git clone https://github.com/toniebox-reverse-engineering/pico_i2c_slave-toniebox`
+- `cd pico_i2c_slave-toniebox`
 - `mkdir build`, `cd build`, `cmake ../`, `make`
 - copy `example_mem/example_mem.uf2` to Raspberry Pico
 - open a serial connection and check output
