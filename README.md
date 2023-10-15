@@ -8,8 +8,7 @@ I did this mod without deep electrical knowledge. The voltage regulator should b
 As I cannot cut the power of the pico, it need around 1mA when the box is off. When the box is running 30-50mAs extra.
 
 ## Known problems
-If you are using a stock toniebox with the original bootloader and firmware, the box will wakeup with red blinking. The problem is, that the box checks the emulated MMA faster than the pico is read. 
-As a workaround you should use the [Hackiebox NG Custom Bootloader](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng). This way the box needs longer to boot and everything will be working as expected.
+The pico currently doesn't reliably wakeup. If you wake up the box shortly after it went to sleep, the pico will wake up, too. If you are waiting some minutes more, the pico won't wake up and the box will blink in red.
 
 ## Cut the VDD of the MMA8452Q
 Please cut the VDD of the MMA8452Q (blue) marked with the red line.
