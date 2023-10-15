@@ -7,6 +7,9 @@ I did this mod without deep electrical knowledge. The voltage regulator should b
 ## Known side effects
 As I cannot cut the power of the pico, it need around 1mA when the box is off. When the box is running 30-50mAs extra.
 
+## Known problems
+The pico currently doesn't reliably wakeup. If you wake up the box shortly after it went to sleep, the pico will wake up, too. If you are waiting some minutes more, the pico won't wake up and the box will blink in red.
+
 ## Cut the VDD of the MMA8452Q
 Please cut the VDD of the MMA8452Q (blue) marked with the red line.
 Just use a sharp knife and do the cut as the line suggest. Afterwards check if the vias above the line and the capacitor below are not connected anymore. 
