@@ -513,8 +513,8 @@ static void sleep_n_start() {
     //----------HERE WE SLEEP
 
     // Re-enable Ring Oscillator control
-    //rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
-    rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_LSB);
+    rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
+    //rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_LSB);
     
     // restore clock registers
     scb_hw->scr = _scb_orig;
