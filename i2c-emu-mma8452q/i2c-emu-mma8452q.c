@@ -458,32 +458,33 @@ static void press_ear(uint8_t pin) {
 
 typedef void (*ActionFunction)();
 
-void onButton(uint8_t pin, ActionFunction action) {
+void onButton(uint8_t pin, ActionFunction action, ActionFunction afterAction) {
     if (!gpio_get(pin)) {
         action();
         while (!gpio_get(pin)) {}
-        send_headsup();
+        afterAction();
     }
 }
-void onButtonShortLong(uint8_t pin, uint8_t not_pin, ActionFunction shortAction, ActionFunction longAction) {
+void onButtonShortLong(uint8_t pin, uint8_t not_pin, ActionFunction shortAction, ActionFunction longAction, ActionFunction afterAction) {
     if (!gpio_get(pin) && gpio_get(not_pin)) {
         sleep_ms(500);
         if (gpio_get(not_pin)) {
             if (!gpio_get(pin)) { // Long
                 longAction();
                 while (!gpio_get(pin)) {}
-                send_headsup();
             } else { // Short
                 shortAction();
                 while (!gpio_get(pin)) {}
             }
+            afterAction();
         }
     }
 }
-void onButtonDoubleHold(uint8_t pinA, uint8_t pinB, ActionFunction action) {
+void onButtonDoubleHold(uint8_t pinA, uint8_t pinB, ActionFunction action, ActionFunction afterAction) {
     if (!gpio_get(pinA) && !gpio_get(pinB)) {
         action();
         while (!gpio_get(pinA) && !gpio_get(pinB)) {}
+        afterAction();
     }
 }
 
@@ -532,27 +533,26 @@ static void sleep_n_start() {
 
 void loop() {
     if (get_bootsel_button()) {
-        reset_irq();
         sleep_ms(500);
         if (get_bootsel_button()) { //Long
             send_headsdown();
             while (get_bootsel_button()) {}
-            send_headsup();
         } else { //Short
             send_tap_left();
             while (get_bootsel_button()) {}
         }
+        send_headsup();
     }
 
-    onButtonShortLong(TAP_N_TILT_FWD_PIN, TAP_N_TILT_BWD_PIN, send_tap_right, send_tilt_left);
-    onButtonShortLong(TAP_N_TILT_BWD_PIN, TAP_N_TILT_FWD_PIN, send_tap_left, send_tilt_right);
-    onButtonDoubleHold(TAP_N_TILT_FWD_PIN, TAP_N_TILT_FWD_PIN, send_headsdown);
+    onButtonShortLong(TAP_N_TILT_FWD_PIN, TAP_N_TILT_BWD_PIN, send_tap_right, send_tilt_left, send_headsup);
+    onButtonShortLong(TAP_N_TILT_BWD_PIN, TAP_N_TILT_FWD_PIN, send_tap_left, send_tilt_right, send_headsup);
+    onButtonDoubleHold(TAP_N_TILT_FWD_PIN, TAP_N_TILT_FWD_PIN, send_headsdown, send_headsup);
 
-    onButton(TAP_LEFT_PIN, send_tap_left);
-    onButton(TAP_RIGHT_PIN, send_tap_right);
-    onButton(TILT_LEFT_PIN, send_tilt_left);
-    onButton(TILT_RIGHT_PIN, send_tilt_right);
-    onButton(HEADSDOWN_PIN, send_headsdown);
+    onButton(TAP_LEFT_PIN, send_tap_left, send_headsup);
+    onButton(TAP_RIGHT_PIN, send_tap_right, send_headsup);
+    onButton(TILT_LEFT_PIN, send_tilt_left, send_headsup);
+    onButton(TILT_RIGHT_PIN, send_tilt_right, send_headsup);
+    onButton(HEADSDOWN_PIN, send_headsdown, send_headsup);
 
     while (ctx.msg_read != ctx.msg_write) {
         ctx_msg msg = pull_msg();
