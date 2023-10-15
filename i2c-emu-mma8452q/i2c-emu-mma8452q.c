@@ -495,8 +495,8 @@ uint32_t lastSleepTime;
 
 int main();
 static void sleep_n_start() {
-    init_registers();
     uart_default_tx_wait_blocking();
+    init_registers();
 
     //Deep Sleep begin
     uint _scb_orig;
