@@ -1,4 +1,4 @@
-# I2C MMA8452Q emulator for the Toniebox
+# I2C MMA8451Q/MMA8452Q emulator for the Toniebox
 This implementents a rudimentary emulation for the acceleration sensor of the Toniebox to replace it with buttons. It is tested with the CC3200 Variant. The CC3235 may work. The ESP32 based box has a different acceleration sensor and is not supported!
 
 ## ATTENTION - THIS WILL VOID YOU WARRANTY
@@ -42,7 +42,7 @@ Hint: If you want to remove this mod, you'll just need resolder this connection 
 | BOOTSEL | Short tap left, hold box is headsdown |
 
 
-## Setup
+## Compiling manually - Setup
 
 Follow the instructions in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) to setup your build environment. You'll also need pico-extras!
 Then:
