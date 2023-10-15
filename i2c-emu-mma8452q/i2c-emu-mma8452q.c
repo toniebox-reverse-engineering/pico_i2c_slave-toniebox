@@ -514,18 +514,25 @@ static void sleep_n_start() {
 
     // Re-enable Ring Oscillator control
     rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_BITS);
-    //rosc_write(&rosc_hw->ctrl, ROSC_CTRL_ENABLE_LSB);
-    
+
     // restore clock registers
     scb_hw->scr = _scb_orig;
     clocks_hw->sleep_en0 = _en0_orig;
     clocks_hw->sleep_en1 = _en1_orig;
 
+    // re-initialize clocks
     clocks_init();
-    stdio_init_all();
-    //Deep sleep done
 
     led(true);
+
+    // https://github.com/raspberrypi/pico-extras/issues/41
+    // https://github.com/ghubcoder/PicoSleepDemo/issues/1#issuecomment-857128257
+    #if LIB_PICO_STDIO_UART
+    stdio_uart_init();
+    #endif
+    // stdio_init_all(); //may crash?!
+    //Deep sleep done
+
     lastMessageTime = millis();
     lastSleepTime = millis();
     printf("Wakeup call!\r\n");
