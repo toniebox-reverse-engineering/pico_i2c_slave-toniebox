@@ -7,6 +7,10 @@ I did this mod without deep electrical knowledge. The voltage regulator should b
 ## Known side effects
 As I cannot cut the power of the pico, it need around 1mA when the box is off. When the box is running 30-50mAs extra.
 
+## Known problems
+If you are using a stock toniebox with the original bootloader and firmware, the box will wakeup with red blinking. The problem is, that the box checks the emulated MMA faster than the pico is read. 
+As a workaround you should use the [Hackiebox NG Custom Bootloader](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng). This way the box needs longer to boot and everything will be working as expected.
+
 ## Cut the VDD of the MMA8452Q
 Please cut the VDD of the MMA8452Q (blue) marked with the red line.
 Just use a sharp knife and do the cut as the line suggest. Afterwards check if the vias above the line and the capacitor below are not connected anymore. 
