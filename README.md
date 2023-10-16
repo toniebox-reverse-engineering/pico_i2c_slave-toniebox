@@ -1,5 +1,6 @@
 # I2C MMA8451Q emulator for the Toniebox
 This implementents a rudimentary emulation for the acceleration sensor of the Toniebox to replace it with buttons. It is tested with the CC3200 Variant. The CC3235 may work. The ESP32 based box has a different acceleration sensor and is not supported!
+Using GP10 and GP11 is recommended, as it combines all functions in two buttons.
 
 ## ATTENTION - THIS WILL VOID YOU WARRANTY
 I did this mod without deep electrical knowledge. The voltage regulator should be able to handle the extra as the DAC is also connected to it. If there is anything bad, please let me know. If this breaks your box, don't blame me or Tonies!
@@ -36,10 +37,10 @@ Hint: If you want to remove this mod, you'll just need resolder this connection 
 | GP07 | Tap left |
 | GP08 | Tilt left |
 | GP09 | Tilt right |
-| GP10 | Short tap = right, hold = tilt left |
-| GP11 | Short tap = left, hold = tilt right |
+| GP10 | Short = tap right, hold = tilt left |
+| GP11 | Short = tap = left, hold = tilt right |
 | GP10+11 | Hold both = box is headsdown |
-| BOOTSEL | Short tap = left, hold = box is headsdown |
+| BOOTSEL | Short = tap left, hold = box is headsdown |
 
 
 ## Compiling manually - Setup
