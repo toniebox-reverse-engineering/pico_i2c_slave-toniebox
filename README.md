@@ -1,4 +1,4 @@
-# I2C MMA8451Q/MMA8452Q emulator for the Toniebox
+# I2C MMA8451Q emulator for the Toniebox
 This implementents a rudimentary emulation for the acceleration sensor of the Toniebox to replace it with buttons. It is tested with the CC3200 Variant. The CC3235 may work. The ESP32 based box has a different acceleration sensor and is not supported!
 
 ## ATTENTION - THIS WILL VOID YOU WARRANTY
@@ -7,16 +7,13 @@ I did this mod without deep electrical knowledge. The voltage regulator should b
 ## Known side effects
 As I cannot cut the power of the pico, it need around 1mA when the box is off. When the box is running 30-50mAs extra.
 
-## Known problems
-The pico currently doesn't reliably wakeup. If you wake up the box shortly after it went to sleep, the pico will wake up, too. If you are waiting some minutes more, the pico won't wake up and the box will blink in red.
-
-## Cut the VDD of the MMA8452Q
-Please cut the VDD of the MMA8452Q (blue) marked with the red line.
+## Cut the VDD of the MMA8451Q
+Please cut the VDD of the MMA8451Q (blue) marked with the red line.
 Just use a sharp knife and do the cut as the line suggest. Afterwards check if the vias above the line and the capacitor below are not connected anymore. 
 
 ![VDD Cut](mma8452q-vdd-cut.jpg)
 
-Hint: If you want to remove this mod, you'll just need resolder this connection and the MMA8452Q works again.
+Hint: If you want to remove this mod, you'll just need resolder this connection and the MMA8451Q works again.
 
 ## Pinout
 ### Required
@@ -64,4 +61,4 @@ Then:
 ## Authors
 
 - Valentin Milea <valentin.milea@gmail.com> (I2C_Slave lib)
-- 0xbadbee aka. SciLor (MMA8452Q emulator)
+- 0xbadbee aka. SciLor (MMA8451Q emulator)
